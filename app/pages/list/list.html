@@ -1,0 +1,43 @@
+<ion-navbar *navbar>
+  <ion-title>My Expenses</ion-title>
+  <ion-buttons end>
+    <button (click)="new()">
+      <ion-icon name="add"></ion-icon>
+    </button>
+  </ion-buttons>
+</ion-navbar>
+
+<ion-content class="ListPage">
+  <ion-refresher (refresh)="listRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <ion-list>
+    <ion-item-sliding *ngFor="let item of items; let i = index" #slidingItem>
+      <ion-item>
+        <ion-icon name="plane" item-left *ngIf="item.category=='Airfare'"></ion-icon>
+        <ion-icon name="car" item-left *ngIf="item.category=='Car Rental/Taxi'"></ion-icon>
+        <ion-icon name="home" item-left *ngIf="item.category=='Lodging'"></ion-icon>
+        <ion-icon name="restaurant" item-left *ngIf="item.category=='Meals'"></ion-icon>
+        <ion-icon name="star" item-left *ngIf="item.category=='Other'"></ion-icon>
+        <ion-icon name="wifi" item-left *ngIf="item.category=='Phone/Wifi'"></ion-icon>
+        <h2>{{item.vendor}}</h2>
+        <div class="item-note" item-right>
+          ${{item.amount}}
+        </div>
+      </ion-item>
+      <ion-item-options>
+        <button danger (click)="delete($event, i, item)">
+          <ion-icon name="trash"></ion-icon>
+          Delete
+        </button>
+        <button default (click)="edit($event, i, item, slidingItem)">
+          <ion-icon name="create"></ion-icon>
+          Edit
+        </button>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+  <div *ngIf="selectedItem" padding>
+    You navigated here from <b>{{selectedItem.title}}</b>
+  </div>
+</ion-content>

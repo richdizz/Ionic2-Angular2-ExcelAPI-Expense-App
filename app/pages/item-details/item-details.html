@@ -1,0 +1,48 @@
+<ion-toolbar>
+  <ion-title>
+    <span *ngIf="!isNew">Edit Expense</span>
+    <span *ngIf="isNew">New Expense</span>
+  </ion-title>
+  <ion-buttons start>
+    <button (click)="dismiss()">
+      <span primary showWhen="ios">Cancel</span>
+      <ion-icon name="md-close" showWhen="android,windows"></ion-icon>
+    </button>
+  </ion-buttons>
+  <ion-buttons end>
+    <button (click)="save()">
+      Save
+    </button>
+  </ion-buttons>
+</ion-toolbar>
+
+<ion-content>
+  <ion-list>
+    <ion-item>
+      <ion-label stacked>Vendor</ion-label>
+      <ion-input type="text" [(ngModel)]="selectedItem.vendor" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label stacked>Category</ion-label>
+      <ion-select [(ngModel)]="selectedItem.category" interface="action-sheet" required>
+        <ion-option value="Airfare"><ion-icon name="plane"></ion-icon>Airfare</ion-option>
+        <ion-option value="Car Rental/Taxi"><ion-icon name="car"></ion-icon>Car Rental/Taxi</ion-option>
+        <ion-option value="Lodging"><ion-icon name="home"></ion-icon>Lodging</ion-option>
+        <ion-option value="Meals"><ion-icon name="restaurant"></ion-icon>Meals</ion-option>
+        <ion-option value="Other"><ion-icon name="usd"></ion-icon>Other</ion-option>
+        <ion-option value="Phone/Wifi"><ion-icon name="wifi"></ion-icon>Phone/Wifi</ion-option>
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-label stacked>Amount</ion-label>
+      <ion-input type="number" [(ngModel)]="selectedItem.amount" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label>Receipt</ion-label>
+      <button clear item-right (click)="captureReceipt()">Select</button>
+    </ion-item>
+    <ion-item *ngIf="selectedItem.receiptData">
+      <img id="img" src="data:image/jpg;base64, {{selectedItem.receiptData}}" [ngClass]="{portrait: isPortrait, landscape: !isPortrait}"/>
+    </ion-item>
+  </ion-list>
+</ion-content>
