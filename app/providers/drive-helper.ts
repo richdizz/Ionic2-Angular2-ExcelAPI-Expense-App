@@ -120,7 +120,6 @@ export class DriveHelper {
                         window.localStorage.setItem('CACHE_KEY_WORKBOOK', datasourceId);                        
                         resolve(true);
                     }, function(err) {
-                        debugger;
                         reject(err);
                     }) 
                 }, function(err) {
@@ -151,10 +150,7 @@ export class DriveHelper {
                         if (res.status === 201)
                             resolve(res.json().id);
                         else
-                            reject('graph call failed');
-                    }, 
-                    err => {
-                        debugger;
+                            reject('Create folder failed');
                     });
             }, function(err) {
                 reject(err); //error getting token for MS Graph
@@ -212,14 +208,12 @@ export class DriveHelper {
                             helper.uploadFile(base64, 'Expenses.xlsx').then(function(id: string) {
                                 resolve(id);
                             }, function(err) {
-                                debugger;
                                 reject(err);
                             });
                         };
   
                         //catch read errors
                         reader.onerror = function(err) {
-                            debugger;
                             reject('Error loading file'); 
                         };
                         
