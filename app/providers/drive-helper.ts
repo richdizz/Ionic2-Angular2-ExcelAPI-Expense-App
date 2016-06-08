@@ -59,7 +59,6 @@ export class DriveHelper {
                            reject(err);
                        });
                   }
-                    reject('Error calling MS Graph');
                });
             }, function(err) {
                 reject(err); //error getting token for MS Graph
