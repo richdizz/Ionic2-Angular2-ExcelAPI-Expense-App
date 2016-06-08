@@ -7,12 +7,10 @@ export class DriveHelper {
     constructor(
         private authHelper: AuthHelper,
         private http: Http) {
-            this.expensesFolderId = window.localStorage.getItem('CACHE_KEY_FOLDER');
             this.workbookItemId = window.localStorage.getItem('CACHE_KEY_WORKBOOK');
     }
     
     workbookItemId: string;
-    expensesFolderId: string;
 
     //gets all items from a OneDrive folder at the specified URI
     getItems(uri: string) {
@@ -36,122 +34,33 @@ export class DriveHelper {
         });
     }
     
-    //ensures a folder of a specific name and path exists
-    ensureFolder(uri: string, folderName: string) {
-        let helper = this;
-        return new Promise((resolve, reject) => {
-            helper.getItems(uri).then(function(response: Array<any>) {
-                //loop through items and look for the folder
-                var folderId = null;
-                for (var i = 0; i < response.length; i++) {
-                    if (response[i].name === folderName) {
-                        folderId = response[i].id;
-                        break;   
-                    }
-                }
-                
-                //check if folder was found
-                if (folderId != null) {
-                    //resolve the folder id
-                    resolve(folderId);
-                }
-                else {
-                    //create the folder
-                    helper.createFolder(uri, folderName).then(function(id: string) {
-                        resolve(id);
-                    }, function(err) {
-                        reject(err);
-                    });
-                }
-            }, function (err) {
-                reject(err);
-            });
-        });
-    }
-    
-    //ensures the "Expenses.xslx" file exists in the "MyExpenses" folder specified
-    ensureWorkbook(myExpensesFolderId: string) {
-        //ensure the Excel Workbookexists
-        let helper = this;
-        return new Promise((resolve, reject) => {
-            //check for Expenses.xlsx files
-            helper.getItems('https://graph.microsoft.com/v1.0/me/drive/items/' + myExpensesFolderId + '/children').then(function(response: Array<any>) {
-                //loop through the results and look for the Expenses.xlsx workbook
-                var datasourceId = null;
-                for (var i = 0; i < response.length; i++) {
-                    if (response[i].name === 'Expenses.xlsx') {
-                        datasourceId = response[i].id;
-                        break;   
-                    }
-                }
-                
-                //check if workbook was found
-                if (datasourceId != null) {
-                    //resolve the id
-                    resolve(datasourceId);
-                }
-                else {
-                    //create the files
-                    helper.createWorkbook(myExpensesFolderId).then(function(datasourceId: String) {
-                        resolve(datasourceId);
-                    }, function(err) {
-                        reject(err);
-                    });
-                }
-            }, function (err) {
-                reject(err);
-            });
-        });
-    }
-    
-    //ensures all the configuration information is in place for the app
+    //ensures the "Expenses.xslx" file exists in the approot
     ensureConfig() {
-        //ensure all the folders and files are setup
-        let helper = this;
-        return new Promise((resolve, reject) => {
-            let uri = 'https://graph.microsoft.com/v1.0/me/drive/root/children';
-            helper.ensureFolder(uri, 'Apps').then(function(appFolderId: string) {
-                uri = 'https://graph.microsoft.com/v1.0/me/drive/items/' + appFolderId + '/children';
-                helper.ensureFolder(uri, 'MyExpenses').then(function(myExpensesFolderId: string) {
-                    helper.expensesFolderId = myExpensesFolderId;
-                    window.localStorage.setItem('CACHE_KEY_FOLDER', myExpensesFolderId);
-                    helper.ensureWorkbook(myExpensesFolderId).then(function(datasourceId: string) {
-                        helper.workbookItemId = datasourceId;
-                        window.localStorage.setItem('CACHE_KEY_WORKBOOK', datasourceId);                        
-                        resolve(true);
-                    }, function(err) {
-                        reject(err);
-                    }) 
-                }, function(err) {
-                    reject(err);
-                });
-            }, function(err) {
-                reject(err);
-            });
-        });
-    }
-    
-    //creates a folder at the specified URI with the specified name 
-    createFolder(uri: string, name: string) {
-        //adds a folder to a specific path and name
         let helper = this;
         return new Promise((resolve, reject) => {
             helper.authHelper.getTokenForResource(helper.authHelper._graphResource).then(function(token: Microsoft.ADAL.AuthenticationResult) {
-                //configure headers for API call
-                let headers = new Headers();
-                headers.append('Authorization', 'Bearer ' + token.accessToken);
-                headers.append('Content-Type', 'application/json');
-                let data = JSON.stringify({ name: name, folder: { } });
-               
-                //perform the HTTP POST
-                helper.http.post(uri, data, { headers: headers })
-                    .subscribe(res => {
-                        // Check the response status
-                        if (res.status === 201)
-                            resolve(res.json().id);
-                        else
-                            reject('Create folder failed');
-                    });
+               helper.http.get('https://graph.microsoft.com/v1.0/me/drive/special/approot:/Expenses.xlsx', {
+                   headers: new Headers({ 'Authorization': 'Bearer ' + token.accessToken })
+               })
+               .subscribe(res => {
+                   // Check the response status
+                   if (res.status === 200) {
+                        helper.workbookItemId = res.json().id;
+                        window.localStorage.setItem('CACHE_KEY_WORKBOOK', helper.workbookItemId);  
+                        resolve(true);    
+                   }
+                   else {
+                       //create the files
+                       helper.createWorkbook().then(function(datasourceId: string) {
+                           helper.workbookItemId = datasourceId;
+                           window.localStorage.setItem('CACHE_KEY_WORKBOOK', helper.workbookItemId);  
+                           resolve(true);   
+                       }, function(err) {
+                           reject(err);
+                       });
+                  }
+                    reject('Error calling MS Graph');
+               });
             }, function(err) {
                 reject(err); //error getting token for MS Graph
             });
@@ -160,7 +69,6 @@ export class DriveHelper {
     
     //uploads a file to the MyExpenses folder
     uploadFile(base64: string, name: string) {
-        //adds a folder to a specific path and name
         let helper = this;
         return new Promise((resolve, reject) => {
             helper.authHelper.getTokenForResource(helper.authHelper._graphResource).then(function(token: Microsoft.ADAL.AuthenticationResult) {
@@ -169,7 +77,7 @@ export class DriveHelper {
                 
                 //prepare the request
                 let req = new XMLHttpRequest();
-                req.open('PUT', 'https://graph.microsoft.com/v1.0/me/drive/items/' + helper.expensesFolderId + '/children/' + name + '/content', false);
+                req.open('PUT', 'https://graph.microsoft.com/v1.0/me/drive/special/approot:/' + name + '/content', false);
                 req.setRequestHeader('Content-type', 'application/octet-stream');
                 req.setRequestHeader('Content-length', binary.length.toString());
                 req.setRequestHeader('Authorization', 'Bearer ' + token.accessToken);
@@ -187,8 +95,8 @@ export class DriveHelper {
         });
     }
     
-    //creates the "Expenses.xslx" workbook in the "MyExpenses" folder specified
-    createWorkbook(folderId: string) {
+    //creates the "Expenses.xslx" workbook in the approot folder specified
+    createWorkbook() {
         //adds a the workbook to OneDrive
         let helper = this;
         return new Promise((resolve, reject) => {
